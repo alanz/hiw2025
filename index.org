@@ -72,11 +72,11 @@ The docs are for 2.10, but the changelog back to 2.0 does not mention it being a
 #+end_notes
 
 * CPP anti-features
+- #define
+- include files
 - Not aware of GHC comments
 - Is aware of CPP-style comments
 - continuation lines
-- #define
-- include files
 
 Maybe
 - line pragmas
@@ -85,6 +85,7 @@ HOWEVER, there is a haskell-specific syntax for that already
 
 #+begin_notes
 These issues are more important from the perspective of tool writers
+#define: darcs has a file gadts.h defining stuff for use with and without them
 #+end_notes
 
 * Motivation

@@ -19,8 +19,8 @@
 <div class="reveal">
 <div class="slides">
 <section>
-<section id="slide-orgcd61ef6">
-<h2 id="orgcd61ef6">An alternative to CPP</h2>
+<section id="slide-org621497a">
+<h2 id="org621497a">An alternative to CPP</h2>
 <p>
 Alan Zimmerman
 </p>
@@ -39,8 +39,8 @@ ZuriHac, 2025-06-06
 </section>
 </section>
 <section>
-<section id="slide-orgd8ff9b9">
-<h2 id="orgd8ff9b9">CPP</h2>
+<section id="slide-orgb5eaca0">
+<h2 id="orgb5eaca0">CPP</h2>
 <ul>
 <li>In use from the beginning, at least GHC 2.0
 <ul>
@@ -64,14 +64,14 @@ The docs are for 2.10, but the changelog back to 2.0 does not mention it being a
 </section>
 </section>
 <section>
-<section id="slide-orge3045cd">
-<h2 id="orge3045cd">CPP anti-features</h2>
+<section id="slide-org57dea7b">
+<h2 id="org57dea7b">CPP anti-features</h2>
 <ul>
+<li>#define</li>
+<li>include files</li>
 <li>Not aware of GHC comments</li>
 <li>Is aware of CPP-style comments</li>
 <li>continuation lines</li>
-<li>#define</li>
-<li>include files</li>
 
 </ul>
 
@@ -90,21 +90,22 @@ HOWEVER, there is a haskell-specific syntax for that already
 <aside class="notes">
 <p>
 These issues are more important from the perspective of tool writers
+#define: darcs has a file gadts.h defining stuff for use with and without them
 </p>
 
 </aside>
 </section>
 </section>
 <section>
-<section id="slide-orgafd207c">
-<h2 id="orgafd207c">Motivation</h2>
-<div class="outline-text-2" id="text-orgafd207c">
+<section id="slide-org45987e2">
+<h2 id="org45987e2">Motivation</h2>
+<div class="outline-text-2" id="text-org45987e2">
 </div>
 </section>
 </section>
 <section>
-<section id="slide-org0991f72">
-<h3 id="org0991f72">What</h3>
+<section id="slide-orgf250748">
+<h3 id="orgf250748">What</h3>
 <ul>
 <li>subset implementation of CPP inside GHC</li>
 
@@ -112,28 +113,28 @@ These issues are more important from the perspective of tool writers
 </section>
 </section>
 <section>
-<section id="slide-org91a33d9">
-<h3 id="org91a33d9">Why</h3>
-<div class="outline-text-3" id="text-org91a33d9">
+<section id="slide-org4f0a778">
+<h3 id="org4f0a778">Why</h3>
+<div class="outline-text-3" id="text-org4f0a778">
 </div>
 </section>
-<section id="slide-org33926cf">
-<h4 id="org33926cf">tooling</h4>
-<div class="outline-text-4" id="text-org33926cf">
+<section id="slide-org5b8f18e">
+<h4 id="org5b8f18e">tooling</h4>
+<div class="outline-text-4" id="text-org5b8f18e">
 </div>
 <ul class="org-ul">
-<li><a id="org7b84ceb"></a>ghc-exactprint<br />
+<li><a id="org023e890"></a>ghc-exactprint<br />
 <ul>
 <li>Difficult to manage the pieces, especially the anti-features</li>
 
 </ul>
 </li>
-<li><a id="org35f342a"></a>retrie<br />
+<li><a id="org489dbd7"></a>retrie<br />
 <p>
 Works with all expansions of CPP options for a file
 </p>
 </li>
-<li><a id="orgfd37ab8"></a>ormolu<br />
+<li><a id="org52e4a79"></a>ormolu<br />
 <p>
 Need to check what it does
 <a href="https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp">https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp</a>
@@ -148,24 +149,24 @@ conditional compilation, all tools will benefit from it.
 </li>
 </ul>
 </section>
-<section id="slide-org391e40d">
-<h4 id="org391e40d">tooling recap</h4>
+<section id="slide-org3adc339">
+<h4 id="org3adc339">tooling recap</h4>
 <p>
 Every tool is doing its own best to cope with it
 </p>
 </section>
-<section id="slide-orgf519447">
-<h4 id="orgf519447">simplification</h4>
+<section id="slide-org68eb67c">
+<h4 id="org68eb67c">simplification</h4>
 </section>
 </section>
 <section>
-<section id="slide-org13283b6">
-<h3 id="org13283b6">Goals</h3>
-<div class="outline-text-3" id="text-org13283b6">
+<section id="slide-org92c6ace">
+<h3 id="org92c6ace">Goals</h3>
+<div class="outline-text-3" id="text-org92c6ace">
 </div>
 </section>
-<section id="slide-orgd394304">
-<h4 id="orgd394304">Limited subset</h4>
+<section id="slide-orgad0b658">
+<h4 id="orgad0b658">Limited subset</h4>
 <p>
 Chosen how?
 Lets look at some empirical results
@@ -173,20 +174,20 @@ Lets look at some empirical results
 </section>
 </section>
 <section>
-<section id="slide-orgac472b7">
-<h2 id="orgac472b7">Implementation</h2>
-<div class="outline-text-2" id="text-orgac472b7">
+<section id="slide-orgd8e5d4e">
+<h2 id="orgd8e5d4e">Implementation</h2>
+<div class="outline-text-2" id="text-orgd8e5d4e">
 </div>
 </section>
 </section>
 <section>
-<section id="slide-org4ef3ad3">
-<h3 id="org4ef3ad3">Basis : CPP Spec</h3>
+<section id="slide-org49f385b">
+<h3 id="org49f385b">Basis : CPP Spec</h3>
 </section>
 </section>
 <section>
-<section id="slide-org1cefb8f">
-<h3 id="org1cefb8f">What features</h3>
+<section id="slide-orgc92d0e9">
+<h3 id="orgc92d0e9">What features</h3>
 <ul>
 <li>"bare minimum"</li>
 <li>Only process lines starting #, or continuation of one starting #</li>
@@ -210,8 +211,8 @@ And not necessary.
 </section>
 </section>
 <section>
-<section id="slide-orga9da5fc">
-<h3 id="orga9da5fc">Notes</h3>
+<section id="slide-org7384738">
+<h3 id="org7384738">Notes</h3>
 <ul>
 <li>note: two phases: get pragmas, and do parse</li>
 <li>preset macros
@@ -231,8 +232,8 @@ load pre-processed macros for a project</li>
 </section>
 </section>
 <section>
-<section id="slide-org24ea881">
-<h3 id="org24ea881">Dealing with "off" sections</h3>
+<section id="slide-orgdbf9f23">
+<h3 id="orgdbf9f23">Dealing with "off" sections</h3>
 <ul>
 <li>considered emitting tokens</li>
 <li>switched to making it a comment
@@ -247,8 +248,8 @@ e.g. #if 0, some random chunk of text</li>
 </section>
 </section>
 <section>
-<section id="slide-orgc349ee5">
-<h3 id="orgc349ee5">CPP-style comments</h3>
+<section id="slide-org641a9f3">
+<h3 id="org641a9f3">CPP-style comments</h3>
 <ul>
 <li>can possibly enable them when starting against the left margin, only
 <ul>
@@ -260,16 +261,16 @@ e.g. #if 0, some random chunk of text</li>
 </section>
 </section>
 <section>
-<section id="slide-org537f590">
-<h3 id="org537f590">Subset</h3>
+<section id="slide-org09c0b65">
+<h3 id="org09c0b65">Subset</h3>
 <p>
 Barest subset of evaluation
 </p>
 </section>
 </section>
 <section>
-<section id="slide-org57dc030">
-<h3 id="org57dc030">Usage for ghc-exactprint</h3>
+<section id="slide-org8ce9904">
+<h3 id="org8ce9904">Usage for ghc-exactprint</h3>
 <ul>
 <li>skip/ignore unprocessed pragmas</li>
 <li>Turn line pragmas into comments
@@ -284,8 +285,8 @@ Barest subset of evaluation
 </section>
 </section>
 <section>
-<section id="slide-org2c9621b">
-<h2 id="org2c9621b">Usage scenarios</h2>
+<section id="slide-org511c45b">
+<h2 id="org511c45b">Usage scenarios</h2>
 <ul>
 <li>Explicit usage instead of CPP.
 <ul>
@@ -314,17 +315,17 @@ We do need a reasonable unit env
 </section>
 </section>
 <section>
-<section id="slide-org410f0e0">
-<h2 id="org410f0e0">Experience report</h2>
-<div class="outline-text-2" id="text-org410f0e0">
+<section id="slide-org9c79083">
+<h2 id="org9c79083">Experience report</h2>
+<div class="outline-text-2" id="text-org9c79083">
 </div>
 </section>
-<section id="slide-org9713abc">
-<h4 id="org9713abc">roundtrip</h4>
-<div class="outline-text-4" id="text-org9713abc">
+<section id="slide-orgca92710">
+<h4 id="orgca92710">roundtrip</h4>
+<div class="outline-text-4" id="text-orgca92710">
 </div>
 <ul class="org-ul">
-<li><a id="orgf2df8de"></a>Preparation<br />
+<li><a id="org70a795d"></a>Preparation<br />
 <ul>
 <li>download all of hackage as at Mar 16</li>
 <li>cleanup whitespace, line endings</li>
@@ -347,7 +348,7 @@ We do need a reasonable unit env
 
 </ul>
 </li>
-<li><a id="org22f5c14"></a>fixes<br />
+<li><a id="orge85a1d3"></a>fixes<br />
 <p>
 JavaScriptFFI : allow always
 hard-code usage of GHC<sub>CPP</sub>
@@ -355,14 +356,14 @@ hard-code usage of GHC<sub>CPP</sub>
 </li>
 </ul>
 </section>
-<section id="slide-orgd96d8cf">
-<h4 id="orgd96d8cf">actual usage</h4>
+<section id="slide-orgc62edde">
+<h4 id="orgc62edde">actual usage</h4>
 <p>
 Add a force option?
 </p>
 </section>
-<section id="slide-orgcaafc3a">
-<h4 id="orgcaafc3a">Results of ghc-exactprint</h4>
+<section id="slide-orgb9a56cc">
+<h4 id="orgb9a56cc">Results of ghc-exactprint</h4>
 <ul>
 <li>204,566  of 235k files processed.</li>
 <li>Did not have time to sort out pragmas on the remaining 35k odd files</li>
@@ -377,8 +378,8 @@ Add a force option?
 
 </ul>
 </section>
-<section id="slide-org848d307">
-<h4 id="org848d307">caveats</h4>
+<section id="slide-orgf125f98">
+<h4 id="orgf125f98">caveats</h4>
 <ul>
 <li>This measures ability to correctly parse a file, and round trip it</li>
 <li>does not compare the resulting AST's from CPP and GHC<sub>CPP</sub>

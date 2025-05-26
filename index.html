@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>An alternative to CPP (HIW 2025)</title>
+<meta name="author" content="Alan Zimmerman"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="./reveal.js/dist/reveal.css"/>
+
+<link rel="stylesheet" href="./reveal.js/dist/theme/white_contrast_compact_verbatim_headers.css" id="theme"/>
+
+<link rel="stylesheet" href="./local.css"/>
+
+<link rel="stylesheet" href="./reveal.js/plugin/toc-progress/toc-progress.css"/>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section>
+<section id="slide-orgcd61ef6">
+<h2 id="orgcd61ef6">An alternative to CPP</h2>
+<p>
+Alan Zimmerman
+</p>
+
+<p>
+<a href="https://social.coop/@alanz"><code>@alanz@social.coop</code></a>
+</p>
+
+<p>
+Haskell Implementors' Workshop,
+</p>
+
+<p>
+ZuriHac, 2025-06-06
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgd8ff9b9">
+<h2 id="orgd8ff9b9">CPP</h2>
+<ul>
+<li>In use from the beginning, at least GHC 2.0
+<ul>
+<li>Used mainly to manage differences between versions</li>
+<li>Is outside of the language, so independent of it, and can do the
+job</li>
+<li>But all features in an API will be used</li>
+
+</ul></li>
+
+</ul>
+
+<aside class="notes">
+<p>
+My 5 min research shows it was in GHC 2 already, from 1997.
+<a href="https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109">https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109</a>
+The docs are for 2.10, but the changelog back to 2.0 does not mention it being added.
+</p>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-orge3045cd">
+<h2 id="orge3045cd">CPP anti-features</h2>
+<ul>
+<li>Not aware of GHC comments</li>
+<li>Is aware of CPP-style comments</li>
+<li>continuation lines</li>
+<li>#define</li>
+<li>include files</li>
+
+</ul>
+
+<p>
+Maybe
+</p>
+<ul>
+<li>line pragmas</li>
+
+</ul>
+<p>
+But useful for generated code, a definite use-case
+HOWEVER, there is a haskell-specific syntax for that already
+</p>
+
+<aside class="notes">
+<p>
+These issues are more important from the perspective of tool writers
+</p>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-orgafd207c">
+<h2 id="orgafd207c">Motivation</h2>
+<div class="outline-text-2" id="text-orgafd207c">
+</div>
+</section>
+</section>
+<section>
+<section id="slide-org0991f72">
+<h3 id="org0991f72">What</h3>
+<ul>
+<li>subset implementation of CPP inside GHC</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org91a33d9">
+<h3 id="org91a33d9">Why</h3>
+<div class="outline-text-3" id="text-org91a33d9">
+</div>
+</section>
+<section id="slide-org33926cf">
+<h4 id="org33926cf">tooling</h4>
+<div class="outline-text-4" id="text-org33926cf">
+</div>
+<ul class="org-ul">
+<li><a id="org7b84ceb"></a>ghc-exactprint<br />
+<ul>
+<li>Difficult to manage the pieces, especially the anti-features</li>
+
+</ul>
+</li>
+<li><a id="org35f342a"></a>retrie<br />
+<p>
+Works with all expansions of CPP options for a file
+</p>
+</li>
+<li><a id="orgfd37ab8"></a>ormolu<br />
+<p>
+Need to check what it does
+<a href="https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp">https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp</a>
+</p>
+
+<blockquote>
+<p>
+If CPP is replaced with some language extension or mechanism to do
+conditional compilation, all tools will benefit from it.
+</p>
+</blockquote>
+</li>
+</ul>
+</section>
+<section id="slide-org391e40d">
+<h4 id="org391e40d">tooling recap</h4>
+<p>
+Every tool is doing its own best to cope with it
+</p>
+</section>
+<section id="slide-orgf519447">
+<h4 id="orgf519447">simplification</h4>
+</section>
+</section>
+<section>
+<section id="slide-org13283b6">
+<h3 id="org13283b6">Goals</h3>
+<div class="outline-text-3" id="text-org13283b6">
+</div>
+</section>
+<section id="slide-orgd394304">
+<h4 id="orgd394304">Limited subset</h4>
+<p>
+Chosen how?
+Lets look at some empirical results
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgac472b7">
+<h2 id="orgac472b7">Implementation</h2>
+<div class="outline-text-2" id="text-orgac472b7">
+</div>
+</section>
+</section>
+<section>
+<section id="slide-org4ef3ad3">
+<h3 id="org4ef3ad3">Basis : CPP Spec</h3>
+</section>
+</section>
+<section>
+<section id="slide-org1cefb8f">
+<h3 id="org1cefb8f">What features</h3>
+<ul>
+<li>"bare minimum"</li>
+<li>Only process lines starting #, or continuation of one starting #</li>
+<li>conditionals:
+<ul>
+<li>if variants</li>
+<li>elif else end</li>
+
+</ul></li>
+<li>define, undef</li>
+<li>error, currently ignored, could easily emit a diagnostic</li>
+<li>No #, ##</li>
+<li>No #include, keeps parser/lexer pure.
+And not necessary.
+<ul>
+<li>perhaps stlyised version of machdeps</li>
+
+</ul></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orga9da5fc">
+<h3 id="orga9da5fc">Notes</h3>
+<ul>
+<li>note: two phases: get pragmas, and do parse</li>
+<li>preset macros
+<ul>
+<li>Based on existing CPP pipeline in GHC, but not written to a file
+<ul>
+<li>GHC version etc</li>
+<li>Also based on Unit Env</li>
+
+</ul></li>
+
+</ul></li>
+<li>possible optimisation, as used in ghc-exactprint
+load pre-processed macros for a project</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org24ea881">
+<h3 id="org24ea881">Dealing with "off" sections</h3>
+<ul>
+<li>considered emitting tokens</li>
+<li>switched to making it a comment
+<ul>
+<li>whitespace ALR rule complexity</li>
+<li>By definition "off" stuff can be anything
+e.g. #if 0, some random chunk of text</li>
+
+</ul></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgc349ee5">
+<h3 id="orgc349ee5">CPP-style comments</h3>
+<ul>
+<li>can possibly enable them when starting against the left margin, only
+<ul>
+<li>but prefer to ban them, we have comment syntax</li>
+
+</ul></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org537f590">
+<h3 id="org537f590">Subset</h3>
+<p>
+Barest subset of evaluation
+</p>
+</section>
+</section>
+<section>
+<section id="slide-org57dc030">
+<h3 id="org57dc030">Usage for ghc-exactprint</h3>
+<ul>
+<li>skip/ignore unprocessed pragmas</li>
+<li>Turn line pragmas into comments
+<ul>
+<li>means we can trust the lines for relative positioning</li>
+<li>implications for use in e.g. HLS</li>
+<li>alternative is to use the PsLocs only</li>
+
+</ul></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org2c9621b">
+<h2 id="org2c9621b">Usage scenarios</h2>
+<ul>
+<li>Explicit usage instead of CPP.
+<ul>
+<li>can be protected by existing CPP, post-process the pragmas, make
+GHC<sub>CPP</sub> override CPP</li>
+
+</ul></li>
+<li>Configured so that the CPP pragma is actually GHC<sub>CPP</sub>, for supported compilers</li>
+<li>Possible make it ambient enabled, Not sure what the benefit is
+But equally, not sure why not</li>
+<li>Tooling
+<ul>
+<li>"in situ", e.g. in HLS where you have a well-configured project, Unit Env
+We want line numbers according to line pragmas</li>
+<li>"ad hoc", as in ghc-exactprint
+Parse only, do not need anything beyond parsing
+We do need a reasonable unit env
+<ul>
+<li>possibly define a "default" macro evaluating to zero</li>
+
+</ul></li>
+
+</ul></li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-org410f0e0">
+<h2 id="org410f0e0">Experience report</h2>
+<div class="outline-text-2" id="text-org410f0e0">
+</div>
+</section>
+<section id="slide-org9713abc">
+<h4 id="org9713abc">roundtrip</h4>
+<div class="outline-text-4" id="text-org9713abc">
+</div>
+<ul class="org-ul">
+<li><a id="orgf2df8de"></a>Preparation<br />
+<ul>
+<li>download all of hackage as at Mar 16</li>
+<li>cleanup whitespace, line endings</li>
+<li>do a run, patch
+<ul>
+<li>add missing pragmas
+<ul>
+<li>from cabal files</li>
+<li>for changes in GHC, e.g. NonDecreasingIndent</li>
+
+</ul></li>
+<li>minor edits for language changes
+<ul>
+<li>" @ " -&gt; "@"</li>
+<li>"! @ -&gt; "!"</li>
+
+</ul></li>
+
+</ul></li>
+
+</ul>
+</li>
+<li><a id="org22f5c14"></a>fixes<br />
+<p>
+JavaScriptFFI : allow always
+hard-code usage of GHC<sub>CPP</sub>
+</p>
+</li>
+</ul>
+</section>
+<section id="slide-orgd96d8cf">
+<h4 id="orgd96d8cf">actual usage</h4>
+<p>
+Add a force option?
+</p>
+</section>
+<section id="slide-orgcaafc3a">
+<h4 id="orgcaafc3a">Results of ghc-exactprint</h4>
+<ul>
+<li>204,566  of 235k files processed.</li>
+<li>Did not have time to sort out pragmas on the remaining 35k odd files</li>
+<li>508 could not be processed by GHC<sub>CPP</sub>
+ 32 used #include
+385 used #define
+ 58 CPP-style comments
+ 21 line concatenation
+ 12 inadequate context emulation
+    MIN<sub>VERSION</sub><sub>xxx</sub>
+    MIN<sub>TOOL</sub><sub>VERSION</sub><sub>xx</sub></li>
+
+</ul>
+</section>
+<section id="slide-org848d307">
+<h4 id="org848d307">caveats</h4>
+<ul>
+<li>This measures ability to correctly parse a file, and round trip it</li>
+<li>does not compare the resulting AST's from CPP and GHC<sub>CPP</sub>
+<ul>
+<li>i.e. does not explicitly check the fidelity of evaluating conditionals</li>
+<li>could be done easily enough as we compare original vs ppr versions</li>
+
+</ul></li>
+
+</ul>
+</section>
+</section>
+</div>
+</div>
+<script src="./reveal.js/dist/reveal.js"></script>
+<script src="./reveal.js/plugin/markdown/markdown.js"></script>
+<script src="./reveal.js/plugin/notes/notes.js"></script>
+<script src="./reveal.js/plugin/zoom/zoom.js"></script>
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: false,
+center: false,
+slideNumber: 'c/t',
+rollingLinks: false,
+keyboard: true,
+mouseWheel: false,
+fragmentInURL: false,
+hashOneBasedIndex: false,
+pdfSeparateFragments: true,
+totalTime: 1200,
+overview: true,
+
+transition: 'linear',
+transitionSpeed: 'default',
+
+// Plugins with reveal.js 4.x
+plugins: [ RevealMarkdown, RevealNotes, RevealZoom ],
+
+// Optional libraries used to extend reveal.js
+dependencies: [
+]
+
+});
+</script>
+</body>
+</html>

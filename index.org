@@ -1,0 +1,203 @@
+#+Title: An alternative to CPP (HIW 2025)
+#+Author: Alan Zimmerman
+#+Email: @alanz@social.coop
+
+#+REVEAL_TITLE_SLIDE:
+# #+REVEAL_SLIDE_FOOTER: Haskell Implementors' Workshop, ZuriHac 2025
+
+#+REVEAL_INIT_OPTIONS: width:1200, height:800, margin: 0.1, minScale:0.2, maxScale:2.5
+#+OPTIONS: num:nil
+#+OPTIONS: reveal_slide_number:c/t
+# #+OPTIONS: toc:1
+#+OPTIONS: toc:0
+
+# 20 mins x 60 secs is 1200
+#+OPTIONS: reveal_totaltime:1200
+
+#+OPTIONS: reveal_center:nil
+# #+REVEAL_THEME: simple
+# #+REVEAL_THEME: white-contrast
+#+REVEAL_THEME: white_contrast_compact_verbatim_headers
+#+REVEAL_HLEVEL: 2
+#+REVEAL_TRANS: linear
+# #+REVEAL_PLUGINS: (markdown notes )
+# #+REVEAL_PLUGINS: (markdown notes highlight toc-pogress)
+# #+REVEAL_PLUGINS: (markdown notes highlight zoom)
+#+REVEAL_PLUGINS: (markdown notes zoom)
+#+REVEAL_EXTRA_CSS: ./local.css
+#+REVEAL_EXTRA_CSS: ./reveal.js/plugin/toc-progress/toc-progress.css
+# #+REVEAL_HIGHLIGHT_CSS: %r/plugin/highlight/github.css
+#+PROPERTY: header-args    :results silent
+#+PROPERTY: header-args    :exports code
+
+
+#+ATTR_REVEAL: :reveal_slide_global_footer 'footer hello'
+
+# ####################################################
+# For TOC-progress, need in Reveal.initialize({
+#
+# // Optional libraries used to extend reveal.js
+# dependencies: [
+#     ..
+#     { src: './reveal.js/plugin/toc-progress/toc-progress.js'
+#       , async: true
+#       , callback: function() { toc_progress.initialize(); toc_progress.create(); }
+#     }
+# ]
+# });
+# ####################################################
+
+* An alternative to CPP
+
+Alan Zimmerman
+
+[[https://social.coop/@alanz][~@alanz@social.coop~]]
+
+Haskell Implementors' Workshop,
+
+ZuriHac, 2025-06-06
+
+* CPP
+
+- In use from the beginning, at least GHC 2.0
+ - Used mainly to manage differences between versions
+ - Is outside of the language, so independent of it, and can do the
+   job
+ - But all features in an API will be used
+
+#+begin_notes
+My 5 min research shows it was in GHC 2 already, from 1997.
+https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109
+The docs are for 2.10, but the changelog back to 2.0 does not mention it being added.
+#+end_notes
+
+* CPP anti-features
+- Not aware of GHC comments
+- Is aware of CPP-style comments
+- continuation lines
+- #define
+- include files
+
+Maybe
+- line pragmas
+But useful for generated code, a definite use-case
+HOWEVER, there is a haskell-specific syntax for that already
+
+#+begin_notes
+These issues are more important from the perspective of tool writers
+#+end_notes
+
+* Motivation
+** What
+- subset implementation of CPP inside GHC
+
+** Why
+*** tooling
+**** ghc-exactprint
+- Difficult to manage the pieces, especially the anti-features
+**** retrie
+Works with all expansions of CPP options for a file
+**** ormolu
+Need to check what it does
+https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp
+
+#+begin_quote
+If CPP is replaced with some language extension or mechanism to do
+conditional compilation, all tools will benefit from it.
+#+end_quote
+*** tooling recap
+Every tool is doing its own best to cope with it
+*** simplification
+** Goals
+*** Limited subset
+Chosen how?
+Lets look at some empirical results
+
+* Implementation
+** Basis : CPP Spec
+** What features
+- "bare minimum"
+- Only process lines starting #, or continuation of one starting #
+- conditionals:
+  - if variants
+  - elif else end
+- define, undef
+- error, currently ignored, could easily emit a diagnostic
+- No #, ##
+- No #include, keeps parser/lexer pure.
+  And not necessary.
+  - perhaps stlyised version of machdeps
+** Notes
+- note: two phases: get pragmas, and do parse
+- preset macros
+  - Based on existing CPP pipeline in GHC, but not written to a file
+    - GHC version etc
+    - Also based on Unit Env
+- possible optimisation, as used in ghc-exactprint
+  load pre-processed macros for a project
+** Dealing with "off" sections
+- considered emitting tokens
+- switched to making it a comment
+  - whitespace ALR rule complexity
+  - By definition "off" stuff can be anything
+    e.g. #if 0, some random chunk of text
+** CPP-style comments
+  - can possibly enable them when starting against the left margin, only
+    - but prefer to ban them, we have comment syntax
+** Subset
+Barest subset of evaluation
+** Usage for ghc-exactprint
+- skip/ignore unprocessed pragmas
+- Turn line pragmas into comments
+  - means we can trust the lines for relative positioning
+  - implications for use in e.g. HLS
+  - alternative is to use the PsLocs only
+* Usage scenarios
+- Explicit usage instead of CPP.
+  - can be protected by existing CPP, post-process the pragmas, make
+    GHC_CPP override CPP
+- Configured so that the CPP pragma is actually GHC_CPP, for supported compilers
+- Possible make it ambient enabled, Not sure what the benefit is
+  But equally, not sure why not
+- Tooling
+  - "in situ", e.g. in HLS where you have a well-configured project, Unit Env
+    We want line numbers according to line pragmas
+  - "ad hoc", as in ghc-exactprint
+    Parse only, do not need anything beyond parsing
+    We do need a reasonable unit env
+    - possibly define a "default" macro evaluating to zero
+* Experience report
+*** roundtrip
+**** Preparation
+- download all of hackage as at Mar 16
+- cleanup whitespace, line endings
+- do a run, patch
+  - add missing pragmas
+    - from cabal files
+    - for changes in GHC, e.g. NonDecreasingIndent
+  - minor edits for language changes
+    - " @ " -> "@"
+    - "! @ -> "!"
+**** fixes
+JavaScriptFFI : allow always
+hard-code usage of GHC_CPP
+*** actual usage
+Add a force option?
+
+*** Results of ghc-exactprint
+- 204,566  of 235k files processed.
+- Did not have time to sort out pragmas on the remaining 35k odd files
+- 508 could not be processed by GHC_CPP
+   32 used #include
+  385 used #define
+   58 CPP-style comments
+   21 line concatenation
+   12 inadequate context emulation
+      MIN_VERSION_xxx
+      MIN_TOOL_VERSION_xx
+*** caveats
+- This measures ability to correctly parse a file, and round trip it
+- does not compare the resulting AST's from CPP and GHC_CPP
+  - i.e. does not explicitly check the fidelity of evaluating conditionals
+  - could be done easily enough as we compare original vs ppr versions
+

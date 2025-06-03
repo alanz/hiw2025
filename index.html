@@ -19,8 +19,8 @@
 <div class="reveal">
 <div class="slides">
 <section>
-<section id="slide-org621497a">
-<h2 id="org621497a">An alternative to CPP</h2>
+<section id="slide-orgf8aeea8">
+<h2 id="orgf8aeea8">An alternative to CPP</h2>
 <p>
 Alan Zimmerman
 </p>
@@ -36,158 +36,234 @@ Haskell Implementors' Workshop,
 <p>
 ZuriHac, 2025-06-06
 </p>
+
+<aside class="notes">
+<p>
+Hi, Alan Zimmerman, I look after ghc-exactprint.
+</p>
+
+<p>
+And today I want to talk about CPP, which has pained me ever since I
+started working on Haskell refactoring tools over ten years ago.
+</p>
+
+</aside>
 </section>
 </section>
 <section>
-<section id="slide-orgb5eaca0">
-<h2 id="orgb5eaca0">CPP</h2>
+<section id="slide-orgf366ed4">
+<h2 id="orgf366ed4">CPP</h2>
 <ul>
-<li>In use from the beginning, at least GHC 2.0
-<ul>
+<li>In use from the beginning, at least GHC 2.0</li>
 <li>Used mainly to manage differences between versions</li>
-<li>Is outside of the language, so independent of it, and can do the
-job</li>
-<li>But all features in an API will be used</li>
-
-</ul></li>
+<li>Is outside the language of Haskell</li>
 
 </ul>
 
 <aside class="notes">
+<p>
+The C preprocessor. Or C++ preprocessor.
+</p>
+
 <p>
 My 5 min research shows it was in GHC 2 already, from 1997.
 <a href="https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109">https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109</a>
 The docs are for 2.10, but the changelog back to 2.0 does not mention it being added.
 </p>
 
+<p>
+Because it is outside the language, it can manage changes between
+versions without itself being tripped up by syntax.
+</p>
+
+<p>
+It runs using the generalised GHC capability to run a preprocessor
+programme over the source
+</p>
+
+<p>
+But is in a privileged position because it is deeply embedded in GHC
+</p>
+
 </aside>
 </section>
 </section>
 <section>
-<section id="slide-org57dea7b">
-<h2 id="org57dea7b">CPP anti-features</h2>
+<section id="slide-org160dac0">
+<h2 id="org160dac0">CPP Support</h2>
 <ul>
-<li>#define</li>
-<li>include files</li>
-<li>Not aware of GHC comments</li>
-<li>Is aware of CPP-style comments</li>
-<li>continuation lines</li>
+<li>"Simply" an extension, which triggers all the machinery
+<ul>
+<li>See [Preprocessing invocations]</li>
+
+</ul></li>
+<li>GHC provides predefined macros describing the environment</li>
+<li>Even so, it is invoked as an external programme</li>
 
 </ul>
 
-<p>
-Maybe
-</p>
+<aside class="notes">
 <ul>
-<li>line pragmas</li>
+<li>Includes the GHC version, operating system, word size</li>
+
+<li>also versions of all the packages configured in the project, known
+to GHC when compiling a module</li>
+
+<li>cabal also emits a header file describing the environment it has
+configured.</li>
 
 </ul>
-<p>
-But useful for generated code, a definite use-case
-HOWEVER, there is a haskell-specific syntax for that already
-</p>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-orga0e822c">
+<h2 id="orga0e822c">Why is CPP a problem</h2>
+<ul>
+<li>It does too much</li>
+<li>✅ conditionally include code</li>
+<li>❌ continuation lines</li>
+<li>❌ arbitrary text replacement</li>
+<li>❌ include files</li>
+
+</ul>
 
 <aside class="notes">
 <p>
-These issues are more important from the perspective of tool writers
-#define: darcs has a file gadts.h defining stuff for use with and without them
+It does or can do too much.
+</p>
+<ul>
+<li>conditionally enable/disable blocks of code</li>
+<li>but also
+<ul>
+<li>combine lines using trailing backslash</li>
+<li>process include files</li>
+<li>arbitrary replacement of text using #define</li>
+
+</ul></li>
+<li>Breaks layering, making code hard(er) to understand</li>
+
+<li>The last items are just an annoyance when trying to understand code,
+but make any kind of tooling much more difficult to write</li>
+
+</ul>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-org60ba2a8">
+<h2 id="org60ba2a8">CPP and tooling</h2>
+<ul>
+<li>Locations</li>
+<li>WYS ≠ WYG</li>
+<li>Comments</li>
+
+</ul>
+
+<aside class="notes">
+<ul>
+<li>The output of the preprocessor is different, by definition
+<ul>
+<li>So tying things back to original locations gets harder</li>
+
+</ul></li>
+<li>Especially with #define, an error message can refer to a location that makes no sense</li>
+<li>Tools that want to round trip based on the AST do not see a representation of the original source</li>
+
+</ul>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-org18ec7e8">
+<h2 id="org18ec7e8">🎉 GHC_CPP 🎉</h2>
+<ul>
+<li>subset implementation of CPP inside GHC</li>
+<li>just enough to control conditional compilation</li>
+<li>tooling friendly</li>
+
+</ul>
+
+<aside class="notes">
+<ul>
+<li>Only active in lines introduced with a `#` and preprocessor
+keyword.</li>
+<li>Tooling friendly, in that parts of the code disabled by the
+processor will be saved as comments, if comments are being
+processed.</li>
+
+</ul>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-orgab721d5">
+<h2 id="orgab721d5">GHC Proposal : Ghc CPP #616</h2>
+
+<div id="orgf6cba93" class="figure">
+<p><img src="./images-work/ghc-proposal-616.png" alt="ghc-proposal-616.png" />
+</p>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-org01f67c5">
+<h2 id="org01f67c5">Goal : managing version changes</h2>
+<ul>
+<li>Enough power to cover &gt; 90% of current version change usage</li>
+<li>Drop-in replacement for the features it <b>does</b> support</li>
+<li>Pure, so no include files</li>
+<li>Strictly limited scope, only applies in lines starting `#`</li>
+
+</ul>
+
+<aside class="notes">
+<p>
+Goal is managing unavoidable compatibility issues
+</p>
+
+<p>
+Haskell has powerful abstraction mechanisms that can cover a lot of
+cases, such as patterns
+</p>
+
+<p>
+But some changes are unavoidable
+</p>
+
+<p>
+<b>Not</b> intended as a complete replacement. There will always be cases
+where it must be used, either for legacy codebases or constrained
+environments, such as FFI.
+</p>
+
+<p>
+Interesting note, the `#` <b>has</b> to start against the margin, else it can
+conflict with overloaded record labels
 </p>
 
 </aside>
 </section>
 </section>
 <section>
-<section id="slide-org45987e2">
-<h2 id="org45987e2">Motivation</h2>
-<div class="outline-text-2" id="text-org45987e2">
+<section id="slide-orgd5e49e9">
+<h2 id="orgd5e49e9">Implementation</h2>
+<div class="outline-text-2" id="text-orgd5e49e9">
 </div>
 </section>
 </section>
 <section>
-<section id="slide-orgf250748">
-<h3 id="orgf250748">What</h3>
-<ul>
-<li>subset implementation of CPP inside GHC</li>
-
-</ul>
+<section id="slide-org0960990">
+<h3 id="org0960990">Basis : CPP Spec</h3>
 </section>
 </section>
 <section>
-<section id="slide-org4f0a778">
-<h3 id="org4f0a778">Why</h3>
-<div class="outline-text-3" id="text-org4f0a778">
-</div>
-</section>
-<section id="slide-org5b8f18e">
-<h4 id="org5b8f18e">tooling</h4>
-<div class="outline-text-4" id="text-org5b8f18e">
-</div>
-<ul class="org-ul">
-<li><a id="org023e890"></a>ghc-exactprint<br />
-<ul>
-<li>Difficult to manage the pieces, especially the anti-features</li>
-
-</ul>
-</li>
-<li><a id="org489dbd7"></a>retrie<br />
-<p>
-Works with all expansions of CPP options for a file
-</p>
-</li>
-<li><a id="org52e4a79"></a>ormolu<br />
-<p>
-Need to check what it does
-<a href="https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp">https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp</a>
-</p>
-
-<blockquote>
-<p>
-If CPP is replaced with some language extension or mechanism to do
-conditional compilation, all tools will benefit from it.
-</p>
-</blockquote>
-</li>
-</ul>
-</section>
-<section id="slide-org3adc339">
-<h4 id="org3adc339">tooling recap</h4>
-<p>
-Every tool is doing its own best to cope with it
-</p>
-</section>
-<section id="slide-org68eb67c">
-<h4 id="org68eb67c">simplification</h4>
-</section>
-</section>
-<section>
-<section id="slide-org92c6ace">
-<h3 id="org92c6ace">Goals</h3>
-<div class="outline-text-3" id="text-org92c6ace">
-</div>
-</section>
-<section id="slide-orgad0b658">
-<h4 id="orgad0b658">Limited subset</h4>
-<p>
-Chosen how?
-Lets look at some empirical results
-</p>
-</section>
-</section>
-<section>
-<section id="slide-orgd8e5d4e">
-<h2 id="orgd8e5d4e">Implementation</h2>
-<div class="outline-text-2" id="text-orgd8e5d4e">
-</div>
-</section>
-</section>
-<section>
-<section id="slide-org49f385b">
-<h3 id="org49f385b">Basis : CPP Spec</h3>
-</section>
-</section>
-<section>
-<section id="slide-orgc92d0e9">
-<h3 id="orgc92d0e9">What features</h3>
+<section id="slide-org2c026f7">
+<h3 id="org2c026f7">What features</h3>
 <ul>
 <li>"bare minimum"</li>
 <li>Only process lines starting #, or continuation of one starting #</li>
@@ -211,8 +287,8 @@ And not necessary.
 </section>
 </section>
 <section>
-<section id="slide-org7384738">
-<h3 id="org7384738">Notes</h3>
+<section id="slide-org0142bc4">
+<h3 id="org0142bc4">Notes</h3>
 <ul>
 <li>note: two phases: get pragmas, and do parse</li>
 <li>preset macros
@@ -232,8 +308,8 @@ load pre-processed macros for a project</li>
 </section>
 </section>
 <section>
-<section id="slide-orgdbf9f23">
-<h3 id="orgdbf9f23">Dealing with "off" sections</h3>
+<section id="slide-orgae2b4d1">
+<h3 id="orgae2b4d1">Dealing with "off" sections</h3>
 <ul>
 <li>considered emitting tokens</li>
 <li>switched to making it a comment
@@ -248,8 +324,8 @@ e.g. #if 0, some random chunk of text</li>
 </section>
 </section>
 <section>
-<section id="slide-org641a9f3">
-<h3 id="org641a9f3">CPP-style comments</h3>
+<section id="slide-orgdef61d9">
+<h3 id="orgdef61d9">CPP-style comments</h3>
 <ul>
 <li>can possibly enable them when starting against the left margin, only
 <ul>
@@ -261,16 +337,16 @@ e.g. #if 0, some random chunk of text</li>
 </section>
 </section>
 <section>
-<section id="slide-org09c0b65">
-<h3 id="org09c0b65">Subset</h3>
+<section id="slide-org069a434">
+<h3 id="org069a434">Subset</h3>
 <p>
 Barest subset of evaluation
 </p>
 </section>
 </section>
 <section>
-<section id="slide-org8ce9904">
-<h3 id="org8ce9904">Usage for ghc-exactprint</h3>
+<section id="slide-org2c646a4">
+<h3 id="org2c646a4">Usage for ghc-exactprint</h3>
 <ul>
 <li>skip/ignore unprocessed pragmas</li>
 <li>Turn line pragmas into comments
@@ -285,16 +361,16 @@ Barest subset of evaluation
 </section>
 </section>
 <section>
-<section id="slide-org511c45b">
-<h2 id="org511c45b">Usage scenarios</h2>
+<section id="slide-org40652f8">
+<h2 id="org40652f8">Usage scenarios</h2>
 <ul>
 <li>Explicit usage instead of CPP.
 <ul>
 <li>can be protected by existing CPP, post-process the pragmas, make
-GHC<sub>CPP</sub> override CPP</li>
+GHC_CPP override CPP</li>
 
 </ul></li>
-<li>Configured so that the CPP pragma is actually GHC<sub>CPP</sub>, for supported compilers</li>
+<li>Configured so that the CPP pragma is actually GHC_CPP, for supported compilers</li>
 <li>Possible make it ambient enabled, Not sure what the benefit is
 But equally, not sure why not</li>
 <li>Tooling
@@ -315,17 +391,17 @@ We do need a reasonable unit env
 </section>
 </section>
 <section>
-<section id="slide-org9c79083">
-<h2 id="org9c79083">Experience report</h2>
-<div class="outline-text-2" id="text-org9c79083">
+<section id="slide-orgaae3f6e">
+<h2 id="orgaae3f6e">Experience report</h2>
+<div class="outline-text-2" id="text-orgaae3f6e">
 </div>
 </section>
-<section id="slide-orgca92710">
-<h4 id="orgca92710">roundtrip</h4>
-<div class="outline-text-4" id="text-orgca92710">
+<section id="slide-orgeade0a4">
+<h4 id="orgeade0a4">roundtrip</h4>
+<div class="outline-text-4" id="text-orgeade0a4">
 </div>
 <ul class="org-ul">
-<li><a id="org70a795d"></a>Preparation<br />
+<li><a id="org6aec232"></a>Preparation<br />
 <ul>
 <li>download all of hackage as at Mar 16</li>
 <li>cleanup whitespace, line endings</li>
@@ -348,41 +424,41 @@ We do need a reasonable unit env
 
 </ul>
 </li>
-<li><a id="orge85a1d3"></a>fixes<br />
+<li><a id="org38f0341"></a>fixes<br />
 <p>
 JavaScriptFFI : allow always
-hard-code usage of GHC<sub>CPP</sub>
+hard-code usage of GHC_CPP
 </p>
 </li>
 </ul>
 </section>
-<section id="slide-orgc62edde">
-<h4 id="orgc62edde">actual usage</h4>
+<section id="slide-orgd426f9e">
+<h4 id="orgd426f9e">actual usage</h4>
 <p>
 Add a force option?
 </p>
 </section>
-<section id="slide-orgb9a56cc">
-<h4 id="orgb9a56cc">Results of ghc-exactprint</h4>
+<section id="slide-orgac66f74">
+<h4 id="orgac66f74">Results of ghc-exactprint</h4>
 <ul>
 <li>204,566  of 235k files processed.</li>
 <li>Did not have time to sort out pragmas on the remaining 35k odd files</li>
-<li>508 could not be processed by GHC<sub>CPP</sub>
+<li>508 could not be processed by GHC_CPP
  32 used #include
 385 used #define
  58 CPP-style comments
  21 line concatenation
  12 inadequate context emulation
-    MIN<sub>VERSION</sub><sub>xxx</sub>
-    MIN<sub>TOOL</sub><sub>VERSION</sub><sub>xx</sub></li>
+    MIN_VERSION_xxx
+    MIN_TOOL_VERSION_xx</li>
 
 </ul>
 </section>
-<section id="slide-orgf125f98">
-<h4 id="orgf125f98">caveats</h4>
+<section id="slide-org68648b4">
+<h4 id="org68648b4">caveats</h4>
 <ul>
 <li>This measures ability to correctly parse a file, and round trip it</li>
-<li>does not compare the resulting AST's from CPP and GHC<sub>CPP</sub>
+<li>does not compare the resulting AST's from CPP and GHC_CPP
 <ul>
 <li>i.e. does not explicitly check the fidelity of evaluating conditionals</li>
 <li>could be done easily enough as we compare original vs ppr versions</li>
@@ -390,6 +466,109 @@ Add a force option?
 </ul></li>
 
 </ul>
+</section>
+</section>
+<section>
+<section id="slide-org00be0a1">
+<h2 id="org00be0a1">Unused Stuff</h2>
+<div class="outline-text-2" id="text-org00be0a1">
+</div>
+</section>
+</section>
+<section>
+<section id="slide-org8ea5214">
+<h3 id="org8ea5214">CPP anti-features</h3>
+<ul>
+<li>#define</li>
+<li>include files</li>
+<li>Not aware of GHC comments</li>
+<li>Is aware of CPP-style comments</li>
+<li>continuation lines</li>
+
+</ul>
+
+<p>
+Maybe
+</p>
+<ul>
+<li>line pragmas</li>
+
+</ul>
+<p>
+But useful for generated code, a definite use-case
+HOWEVER, there is a haskell-specific syntax for that already
+</p>
+
+<aside class="notes">
+<p>
+#define that escapes the bounds of CPP directives, that is.
+</p>
+
+<p>
+These issues are more important from the perspective of tool writers
+#define: darcs has a file gadts.h defining stuff for use with and without them
+</p>
+
+</aside>
+</section>
+</section>
+<section>
+<section id="slide-org5a2e1a8">
+<h3 id="org5a2e1a8">Why</h3>
+<ul>
+<li>tooling</li>
+
+</ul>
+
+<aside class="notes">
+<p>
+I look after ghc-exactprint, a library to allow changes to the GHC
+parsed ast, and print it back to source.
+This is difficult or impossible with the current preprocessor
+implementation.
+</p>
+
+</aside>
+</section>
+<section id="slide-org4559a1b">
+<h4 id="org4559a1b">tooling</h4>
+<div class="outline-text-4" id="text-org4559a1b">
+</div>
+<ul class="org-ul">
+<li><a id="orga3ce359"></a>ghc-exactprint<br />
+<ul>
+<li>Difficult to manage the pieces, especially the anti-features</li>
+
+</ul>
+</li>
+<li><a id="org0b75378"></a>retrie<br />
+<p>
+Works with all expansions of CPP options for a file
+</p>
+</li>
+<li><a id="org97a485f"></a>ormolu<br />
+<p>
+Need to check what it does
+<a href="https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp">https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp</a>
+</p>
+
+<blockquote>
+<p>
+If CPP is replaced with some language extension or mechanism to do
+conditional compilation, all tools will benefit from it.
+</p>
+</blockquote>
+</li>
+</ul>
+</section>
+<section id="slide-org6a71eb7">
+<h4 id="org6a71eb7">tooling recap</h4>
+<p>
+Every tool is doing its own best to cope with it
+</p>
+</section>
+<section id="slide-orgf62a61e">
+<h4 id="orgf62a61e">simplification</h4>
 </section>
 </section>
 </div>

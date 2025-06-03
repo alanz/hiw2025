@@ -2,6 +2,7 @@
 #+Author: Alan Zimmerman
 #+Email: @alanz@social.coop
 
+#+OPTIONS: ^:nil
 #+REVEAL_TITLE_SLIDE:
 # #+REVEAL_SLIDE_FOOTER: Haskell Implementors' Workshop, ZuriHac 2025
 
@@ -57,62 +58,122 @@ Haskell Implementors' Workshop,
 
 ZuriHac, 2025-06-06
 
+#+begin_notes
+Hi, Alan Zimmerman, I look after ghc-exactprint.
+
+And today I want to talk about CPP, which has pained me ever since I
+started working on Haskell refactoring tools over ten years ago.
+#+end_notes
+
 * CPP
 
 - In use from the beginning, at least GHC 2.0
- - Used mainly to manage differences between versions
- - Is outside of the language, so independent of it, and can do the
-   job
- - But all features in an API will be used
+- Used mainly to manage differences between versions
+- Is outside the language of Haskell
 
 #+begin_notes
+The C preprocessor. Or C++ preprocessor.
+
 My 5 min research shows it was in GHC 2 already, from 1997.
 https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109
 The docs are for 2.10, but the changelog back to 2.0 does not mention it being added.
+
+Because it is outside the language, it can manage changes between
+versions without itself being tripped up by syntax.
+
+It runs using the generalised GHC capability to run a preprocessor
+programme over the source
+
+But is in a privileged position because it is deeply embedded in GHC
 #+end_notes
 
-* CPP anti-features
-- #define
-- include files
-- Not aware of GHC comments
-- Is aware of CPP-style comments
-- continuation lines
+* CPP Support
 
-Maybe
-- line pragmas
-But useful for generated code, a definite use-case
-HOWEVER, there is a haskell-specific syntax for that already
+- "Simply" an extension, which triggers all the machinery
+  - See [Preprocessing invocations]
+- GHC provides predefined macros describing the environment
+- Even so, it is invoked as an external programme
 
 #+begin_notes
-These issues are more important from the perspective of tool writers
-#define: darcs has a file gadts.h defining stuff for use with and without them
+- Includes the GHC version, operating system, word size
+
+- also versions of all the packages configured in the project, known
+  to GHC when compiling a module
+
+- cabal also emits a header file describing the environment it has
+  configured.
 #+end_notes
 
-* Motivation
-** What
+* Why is CPP a problem
+- It does too much
+- ✅ conditionally include code
+- ❌ continuation lines
+- ❌ arbitrary text replacement
+- ❌ include files
+
+#+begin_notes
+It does or can do too much.
+- conditionally enable/disable blocks of code
+- but also
+  - combine lines using trailing backslash
+  - process include files
+  - arbitrary replacement of text using #define
+- Breaks layering, making code hard(er) to understand
+
+- The last items are just an annoyance when trying to understand code,
+  but make any kind of tooling much more difficult to write
+#+end_notes
+
+* CPP and tooling
+- Locations
+- WYS ≠ WYG
+- Comments
+
+#+begin_notes
+- The output of the preprocessor is different, by definition
+  - So tying things back to original locations gets harder
+- Especially with #define, an error message can refer to a location that makes no sense
+- Tools that want to round trip based on the AST do not see a representation of the original source
+#+end_notes
+
+* 🎉 GHC_CPP 🎉
 - subset implementation of CPP inside GHC
+- just enough to control conditional compilation
+- tooling friendly
 
-** Why
-*** tooling
-**** ghc-exactprint
-- Difficult to manage the pieces, especially the anti-features
-**** retrie
-Works with all expansions of CPP options for a file
-**** ormolu
-Need to check what it does
-https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp
+#+begin_notes
+- Only active in lines introduced with a `#` and preprocessor
+  keyword.
+- Tooling friendly, in that parts of the code disabled by the
+  processor will be saved as comments, if comments are being
+  processed.
+#+end_notes
 
-#+begin_quote
-If CPP is replaced with some language extension or mechanism to do
-conditional compilation, all tools will benefit from it.
-#+end_quote
-*** tooling recap
-Every tool is doing its own best to cope with it
-*** simplification
-** Goals
-*** Limited subset
-Chosen how?
-Lets look at some empirical results
+* GHC Proposal : Ghc CPP #616
+
+[[./images-work/ghc-proposal-616.png]]
+
+* Goal : managing version changes
+- Enough power to cover > 90% of current version change usage
+- Drop-in replacement for the features it *does* support
+- Pure, so no include files
+- Strictly limited scope, only applies in lines starting `#`
+
+#+begin_notes
+Goal is managing unavoidable compatibility issues
+
+Haskell has powerful abstraction mechanisms that can cover a lot of
+cases, such as patterns
+
+But some changes are unavoidable
+
+*Not* intended as a complete replacement. There will always be cases
+where it must be used, either for legacy codebases or constrained
+environments, such as FFI.
+
+Interesting note, the `#` *has* to start against the margin, else it can
+conflict with overloaded record labels
+#+end_notes
 
 * Implementation
 ** Basis : CPP Spec
@@ -202,3 +263,52 @@ Add a force option?
   - i.e. does not explicitly check the fidelity of evaluating conditionals
   - could be done easily enough as we compare original vs ppr versions
 
+
+
+
+* Unused Stuff
+** CPP anti-features
+- #define
+- include files
+- Not aware of GHC comments
+- Is aware of CPP-style comments
+- continuation lines
+
+Maybe
+- line pragmas
+But useful for generated code, a definite use-case
+HOWEVER, there is a haskell-specific syntax for that already
+
+#+begin_notes
+#define that escapes the bounds of CPP directives, that is.
+
+These issues are more important from the perspective of tool writers
+#define: darcs has a file gadts.h defining stuff for use with and without them
+#+end_notes
+
+** Why
+- tooling
+
+#+begin_notes
+I look after ghc-exactprint, a library to allow changes to the GHC
+parsed ast, and print it back to source.
+This is difficult or impossible with the current preprocessor
+implementation.
+#+end_notes
+
+*** tooling
+**** ghc-exactprint
+- Difficult to manage the pieces, especially the anti-features
+**** retrie
+Works with all expansions of CPP options for a file
+**** ormolu
+Need to check what it does
+https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp
+
+#+begin_quote
+If CPP is replaced with some language extension or mechanism to do
+conditional compilation, all tools will benefit from it.
+#+end_quote
+*** tooling recap
+Every tool is doing its own best to cope with it
+*** simplification

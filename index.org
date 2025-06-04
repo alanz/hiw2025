@@ -90,23 +90,23 @@ But is in a privileged position because it is deeply embedded in GHC
 * CPP Support
 
 - "Simply" an extension, which triggers all the machinery
-  - See [Preprocessing invocations]
+  - See [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L49][Note [Preprocessing invocations]​]]
 - GHC provides predefined macros describing the environment
 - Even so, it is invoked as an external programme
 
 #+begin_notes
-- Includes the GHC version, operating system, word size
+- Includes the [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L139][GHC version, operating system, word size]]
 
-- also versions of all the packages configured in the project, known
+- also versions of [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L183][all the packages configured in the project]], known
   to GHC when compiling a module
 
-- cabal also emits a header file describing the environment it has
+- cabal also [[https://github.com/ghc/packages-Cabal/blob/6f22f2a789fa23edb210a2591d74ea6a5f767872/Cabal/Distribution/Simple/Build.hs#L698][emits a header file]] describing the environment it has
   configured.
 #+end_notes
 
 * Why is CPP a problem
-- It does too much
-- ✅ conditionally include code
+- It does too much:
+- ✅ conditionally select code
 - ❌ continuation lines
 - ❌ arbitrary text replacement
 - ❌ include files
@@ -133,6 +133,9 @@ It does or can do too much.
 - The output of the preprocessor is different, by definition
   - So tying things back to original locations gets harder
 - Especially with #define, an error message can refer to a location that makes no sense
+  But it is sometimes useful, e.g. darcs has "gadts.h" defining macros for key types
+  CHECK
+- Comments are stripped, and / or mangled
 - Tools that want to round trip based on the AST do not see a representation of the original source
 #+end_notes
 
@@ -142,6 +145,7 @@ It does or can do too much.
 - tooling friendly
 
 #+begin_notes
+- Idea
 - Only active in lines introduced with a `#` and preprocessor
   keyword.
 - Tooling friendly, in that parts of the code disabled by the
@@ -152,6 +156,11 @@ It does or can do too much.
 * GHC Proposal : Ghc CPP #616
 
 [[./images-work/ghc-proposal-616.png]]
+
+#+begin_notes
+I was looking at my HEW talk from last year, and see I was pushing it
+then already.
+#+end_notes
 
 * Goal : managing version changes
 - Enough power to cover > 90% of current version change usage
@@ -176,7 +185,22 @@ conflict with overloaded record labels
 #+end_notes
 
 * Implementation
+** Big picture
+- Modify lexer to include tokens for preprocessor directives
+- Add a preprocessing step between the lexer and parser
+- Profit
+#+begin_notes
+- Tokens starting # and a keyword, and their continuations
+- Also provide a cppignore token, which is basically a kind of comment
+- Preprocessing step accumulates a full directive, and processes it,
+  if extension enabled
+  - Otherwise a straight pass-through
+  - Unless we are in a cpp disabled zone, where the contents are
+    passed as cppignore tokens [CHECK, we pass whole lines?]
+#+end_notes
 ** Basis : CPP Spec
+I worked from an [[https://timsong-cpp.github.io/cppwp/n4140][online version]].
+
 ** What features
 - "bare minimum"
 - Only process lines starting #, or continuation of one starting #

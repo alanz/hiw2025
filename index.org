@@ -87,29 +87,27 @@ programme over the source
 But is in a privileged position because it is deeply embedded in GHC
 #+end_notes
 
-* CPP Support
+* CPP Support in GHC
 
-- "Simply" an extension, which triggers all the machinery
+- CPP is an extension, which triggers all the machinery
   - See [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L49][Note [Preprocessing invocations]​]]
 - GHC provides predefined macros describing the environment
+  - Includes the [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L139][GHC version, operating system, word size]]
+  - also versions of [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L183][all the packages configured in the project]], known
+    to GHC when compiling a module
+  - cabal also [[https://github.com/ghc/packages-Cabal/blob/6f22f2a789fa23edb210a2591d74ea6a5f767872/Cabal/Distribution/Simple/Build.hs#L698][emits a header file]] describing the environment it has
+    configured.
 - Even so, it is invoked as an external programme
 
 #+begin_notes
-- Includes the [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L139][GHC version, operating system, word size]]
-
-- also versions of [[https://github.com/ghc/ghc/blob/b255a8ca815920f5219dd5136bbb505f684b7e26/compiler/GHC/SysTools/Cpp.hs#L183][all the packages configured in the project]], known
-  to GHC when compiling a module
-
-- cabal also [[https://github.com/ghc/packages-Cabal/blob/6f22f2a789fa23edb210a2591d74ea6a5f767872/Cabal/Distribution/Simple/Build.hs#L698][emits a header file]] describing the environment it has
-  configured.
 #+end_notes
 
 * Why is CPP a problem
 - It does too much:
-- ✅ conditionally select code
-- ❌ continuation lines
-- ❌ arbitrary text replacement
-- ❌ include files
+  - ✅ conditionally select code
+  - ❌ continuation lines
+  - ❌ arbitrary text replacement
+  - ❌ include files
 
 #+begin_notes
 It does or can do too much.
@@ -130,13 +128,16 @@ It does or can do too much.
 - Comments
 
 #+begin_notes
+- This is my main beef
 - The output of the preprocessor is different, by definition
   - So tying things back to original locations gets harder
 - Especially with #define, an error message can refer to a location that makes no sense
   But it is sometimes useful, e.g. darcs has "gadts.h" defining macros for key types
   CHECK
 - Comments are stripped, and / or mangled
-- Tools that want to round trip based on the AST do not see a representation of the original source
+  e.g. commented out CPP macros disappear
+- Tools that want to round trip based on the AST do not see a
+  representation of the original source
 #+end_notes
 
 * 🎉 GHC_CPP 🎉
@@ -184,8 +185,8 @@ Interesting note, the `#` *has* to start against the margin, else it can
 conflict with overloaded record labels
 #+end_notes
 
-* Implementation
-** Big picture
+
+* Implementation : Big picture
 - Modify lexer to include tokens for preprocessor directives
 - Add a preprocessing step between the lexer and parser
 - Profit
@@ -196,12 +197,23 @@ conflict with overloaded record labels
   if extension enabled
   - Otherwise a straight pass-through
   - Unless we are in a cpp disabled zone, where the contents are
-    passed as cppignore tokens [CHECK, we pass whole lines?]
+    passed as cppignore tokens, one per line
+  - I Considered passing actual tokens, but
+    - there is no guarantee it will be valid haskell
+    - managing layout state makes it complex
 #+end_notes
-** Basis : CPP Spec
-I worked from an [[https://timsong-cpp.github.io/cppwp/n4140][online version]].
 
-** What features
+* Basis : CPP Spec
+I worked from an [[https://timsong-cpp.github.io/cppwp/n4140][online version]] at
+https://timsong-cpp.github.io/cppwp/n4140/
+
+#+begin_notes
+Processing pipeline for directives only includes
+- tokenisation and line combination, comment removal, flatten repeated
+  spaces, add a space between each
+#+end_notes
+
+* What features
 - "bare minimum"
 - Only process lines starting #, or continuation of one starting #
 - conditionals:
@@ -213,67 +225,64 @@ I worked from an [[https://timsong-cpp.github.io/cppwp/n4140][online version]].
 - No #include, keeps parser/lexer pure.
   And not necessary.
   - perhaps stlyised version of machdeps
-** Notes
-- note: two phases: get pragmas, and do parse
-- preset macros
-  - Based on existing CPP pipeline in GHC, but not written to a file
-    - GHC version etc
-    - Also based on Unit Env
-- possible optimisation, as used in ghc-exactprint
-  load pre-processed macros for a project
-** Dealing with "off" sections
-- considered emitting tokens
-- switched to making it a comment
-  - whitespace ALR rule complexity
-  - By definition "off" stuff can be anything
-    e.g. #if 0, some random chunk of text
-** CPP-style comments
-  - can possibly enable them when starting against the left margin, only
-    - but prefer to ban them, we have comment syntax
-** Subset
-Barest subset of evaluation
-** Usage for ghc-exactprint
+
+* Usage scenario 1 : CPP alternative
+- Explicit usage instead of CPP
+#+begin_src haskell
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= VERSION_WITH_GHCCPP
+{-# LANGUAGE GHC_CPP #-}
+#endif
+#+end_src
+- Configured so that the CPP pragma is actually GHC_CPP, for supported
+  compilers
+
+- Possible make it ambient enabled
+
+#+begin_notes
+The usage "normal" developers see
+#+end_notes
+
+* Complication: Line pragmas
+
+- GHC Lexer.x already processes these natively
+- Tooling Problem
+  - Swallows the original
+  - Location changes
+
+#+begin_notes
+- The intent is that the location changes, but that makes exact printing unreliable
+- Maybe use the PsSpan instead and allow changes
+- Currently in GHC_CPP mode these become comments instead
+#+end_notes
+
+* Usage scenario 2 : Code modification
 - skip/ignore unprocessed pragmas
 - Turn line pragmas into comments
   - means we can trust the lines for relative positioning
-  - implications for use in e.g. HLS
-  - alternative is to use the PsLocs only
-* Usage scenarios
-- Explicit usage instead of CPP.
-  - can be protected by existing CPP, post-process the pragmas, make
-    GHC_CPP override CPP
-- Configured so that the CPP pragma is actually GHC_CPP, for supported compilers
-- Possible make it ambient enabled, Not sure what the benefit is
-  But equally, not sure why not
-- Tooling
-  - "in situ", e.g. in HLS where you have a well-configured project, Unit Env
-    We want line numbers according to line pragmas
-  - "ad hoc", as in ghc-exactprint
-    Parse only, do not need anything beyond parsing
-    We do need a reasonable unit env
-    - possibly define a "default" macro evaluating to zero
-* Experience report
-*** roundtrip
-**** Preparation
+
+#+begin_notes
+My primary motivation
+#+end_notes
+
+* Experience report : hackage roundtrip
 - download all of hackage as at Mar 16
 - cleanup whitespace, line endings
 - do a run, patch
   - add missing pragmas
     - from cabal files
-    - for changes in GHC, e.g. NonDecreasingIndent
+    - for changes in GHC, e.g. src_haskell{NonDecreasingIndent}
   - minor edits for language changes
     - " @ " -> "@"
     - "! @ -> "!"
-**** fixes
-JavaScriptFFI : allow always
-hard-code usage of GHC_CPP
-*** actual usage
-Add a force option?
+* ghc-exactprint tweaks
+- always allow src_haskell{JavaScriptFFI}
+- hard-code usage of GHC_CPP
+- preset unit env macros to all of hackage
 
-*** Results of ghc-exactprint
-- 204,566  of 235k files processed.
-- Did not have time to sort out pragmas on the remaining 35k odd files
-- 508 could not be processed by GHC_CPP
+* Results of ghc-exactprint
+- 204,566  files processed.
+- 508 could not be processed by GHC_CPP (0.25%)
    32 used #include
   385 used #define
    58 CPP-style comments
@@ -281,15 +290,29 @@ Add a force option?
    12 inadequate context emulation
       MIN_VERSION_xxx
       MIN_TOOL_VERSION_xx
-*** caveats
+
+#+begin_notes
+- Total hackage download is 235k files, did not have time to scrub the last ones
+#+end_notes
+
+* caveats
 - This measures ability to correctly parse a file, and round trip it
 - does not compare the resulting AST's from CPP and GHC_CPP
-  - i.e. does not explicitly check the fidelity of evaluating conditionals
+  - i.e. does not explicitly check the fidelity of evaluating
+    conditionals
   - could be done easily enough as we compare original vs ppr versions
 
+* End
 
+This presentation: https://alanz.github.io/h1w2025/
+[[./images-work/hiw2025-url.png]]
+- [[https://github.com/ghc-proposals/ghc-proposals/pull/616][GHC CPP proposal]]
+- GHC feature branch: https://gitlab.haskell.org/ghc/ghc/-/tree/wip/az/ghc-cpp
+- Matching ghc-exactprint: https://github.com/alanz/ghc-exactprint/tree/ghc_cpp
 
+- Slides written in emacs [[https://orgmode.org/][org-mode]] using [[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] for [[https://revealjs.com/][reveal.js]] 
 
+Questions?
 * Unused Stuff
 ** CPP anti-features
 - #define
@@ -336,3 +359,23 @@ conditional compilation, all tools will benefit from it.
 *** tooling recap
 Every tool is doing its own best to cope with it
 *** simplification
+
+** Notes
+- note: two phases: get pragmas, and do parse
+- preset macros
+  - Based on existing CPP pipeline in GHC, but not written to a file
+    - GHC version etc
+    - Also based on Unit Env
+- possible optimisation, as used in ghc-exactprint
+  load pre-processed macros for a project
+** Dealing with "off" sections
+- considered emitting tokens
+- switched to making it a comment
+  - whitespace ALR rule complexity
+  - By definition "off" stuff can be anything
+    e.g. #if 0, some random chunk of text
+** CPP-style comments
+  - can possibly enable them when starting against the left margin, only
+    - but prefer to ban them, we have comment syntax
+** Subset
+Barest subset of evaluation

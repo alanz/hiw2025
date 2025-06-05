@@ -19,8 +19,8 @@
 <div class="reveal">
 <div class="slides">
 <section>
-<section id="slide-org440839a">
-<h2 id="org440839a">An alternative to CPP</h2>
+<section id="slide-org23998e4">
+<h2 id="org23998e4">An alternative to CPP</h2>
 <p>
 Alan Zimmerman
 </p>
@@ -51,8 +51,8 @@ started working on Haskell refactoring tools over ten years ago.
 </section>
 </section>
 <section>
-<section id="slide-orgb9a25f7">
-<h2 id="orgb9a25f7">CPP</h2>
+<section id="slide-org645949c">
+<h2 id="org645949c">CPP</h2>
 <ul>
 <li>In use from the beginning, at least GHC 2.0</li>
 <li>Used mainly to manage differences between versions</li>
@@ -62,12 +62,7 @@ started working on Haskell refactoring tools over ten years ago.
 
 <aside class="notes">
 <p>
-The C preprocessor. Or C++ preprocessor.
-</p>
-
-<p>
 My 5 min research shows it was in GHC 2 already, from 1997.
-<a href="https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109">https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109</a>
 The docs are for 2.10, but the changelog back to 2.0 does not mention it being added.
 </p>
 
@@ -89,8 +84,8 @@ But is in a privileged position because it is deeply embedded in GHC
 </section>
 </section>
 <section>
-<section id="slide-orgf08911e">
-<h2 id="orgf08911e">CPP Support in GHC</h2>
+<section id="slide-orgb8d7d78">
+<h2 id="orgb8d7d78">CPP Support in GHC</h2>
 <ul>
 <li>CPP is an extension, which triggers all the machinery
 <ul>
@@ -112,8 +107,8 @@ configured.</li>
 </section>
 </section>
 <section>
-<section id="slide-org94c59a8">
-<h2 id="org94c59a8">Why is CPP a problem</h2>
+<section id="slide-org403d831">
+<h2 id="org403d831">Why is CPP a problem</h2>
 <ul>
 <li>It does too much:
 <ul>
@@ -135,8 +130,8 @@ It does or can do too much.
 <li>but also
 <ul>
 <li>combine lines using trailing backslash</li>
-<li>process include files</li>
 <li>arbitrary replacement of text using #define</li>
+<li>process include files</li>
 
 </ul></li>
 <li>Breaks layering, making code hard(er) to understand</li>
@@ -150,8 +145,8 @@ but make any kind of tooling much more difficult to write</li>
 </section>
 </section>
 <section>
-<section id="slide-orgc120edc">
-<h2 id="orgc120edc">CPP and tooling</h2>
+<section id="slide-orgdc01b22">
+<h2 id="orgdc01b22">CPP and tooling</h2>
 <ul>
 <li>Locations</li>
 <li>WYS ≠ WYG</li>
@@ -181,8 +176,8 @@ representation of the original source</li>
 </section>
 </section>
 <section>
-<section id="slide-org7092a14">
-<h2 id="org7092a14">🎉 GHC_CPP 🎉</h2>
+<section id="slide-orgf36b0f6">
+<h2 id="orgf36b0f6">🎉 GHC_CPP 🎉</h2>
 <ul>
 <li>subset implementation of CPP inside GHC</li>
 <li>just enough to control conditional compilation</li>
@@ -192,7 +187,6 @@ representation of the original source</li>
 
 <aside class="notes">
 <ul>
-<li>Idea</li>
 <li>Only active in lines introduced with a `#` and preprocessor
 keyword.</li>
 <li>Tooling friendly, in that parts of the code disabled by the
@@ -205,10 +199,10 @@ processed.</li>
 </section>
 </section>
 <section>
-<section id="slide-orgfd5cd81">
-<h2 id="orgfd5cd81">GHC Proposal : Ghc CPP #616</h2>
+<section id="slide-org3dc3c30">
+<h2 id="org3dc3c30">GHC Proposal : Ghc CPP #616</h2>
 
-<div id="org6ce9868" class="figure">
+<div id="org51187a5" class="figure">
 <p><img src="./images-work/ghc-proposal-616.png" alt="ghc-proposal-616.png" />
 </p>
 </div>
@@ -223,8 +217,8 @@ then already.
 </section>
 </section>
 <section>
-<section id="slide-org4c3dc28">
-<h2 id="org4c3dc28">Goal : managing version changes</h2>
+<section id="slide-org4886ada">
+<h2 id="org4886ada">Goal : managing version changes</h2>
 <ul>
 <li>Enough power to cover &gt; 90% of current version change usage</li>
 <li>Drop-in replacement for the features it <b>does</b> support</li>
@@ -262,8 +256,8 @@ conflict with overloaded record labels
 </section>
 </section>
 <section>
-<section id="slide-org13e7ef8">
-<h2 id="org13e7ef8">Implementation : Big picture</h2>
+<section id="slide-orgd5e02e8">
+<h2 id="orgd5e02e8">Implementation : Big picture</h2>
 <ul>
 <li>Modify lexer to include tokens for preprocessor directives</li>
 <li>Add a preprocessing step between the lexer and parser</li>
@@ -295,11 +289,12 @@ passed as cppignore tokens, one per line</li>
 </section>
 </section>
 <section>
-<section id="slide-org7f79d10">
-<h2 id="org7f79d10">Basis : CPP Spec</h2>
+<section id="slide-org1ef73ef">
+<h2 id="org1ef73ef">Basis : CPP Spec</h2>
 <p>
-I worked from an <a href="https://timsong-cpp.github.io/cppwp/n4140">online version</a> at
+I worked from an online version at
 <a href="https://timsong-cpp.github.io/cppwp/n4140/">https://timsong-cpp.github.io/cppwp/n4140/</a>
+<img src="./images-work/cpp-spec-toc.png" alt="cpp-spec-toc.png" />
 </p>
 
 <aside class="notes">
@@ -316,8 +311,8 @@ spaces, add a space between each</li>
 </section>
 </section>
 <section>
-<section id="slide-org35c64f8">
-<h2 id="org35c64f8">What features</h2>
+<section id="slide-org0538994">
+<h2 id="org0538994">What features</h2>
 <ul>
 <li>"bare minimum"</li>
 <li>Only process lines starting #, or continuation of one starting #</li>
@@ -341,8 +336,8 @@ And not necessary.
 </section>
 </section>
 <section>
-<section id="slide-org8ae829f">
-<h2 id="org8ae829f">Usage scenario 1 : CPP alternative</h2>
+<section id="slide-orgf90d2c1">
+<h2 id="orgf90d2c1">Usage scenario 1 : CPP alternative</h2>
 <ul>
 <li>Explicit usage instead of CPP</li>
 
@@ -372,8 +367,8 @@ The usage "normal" developers see
 </section>
 </section>
 <section>
-<section id="slide-orgd0178f8">
-<h2 id="orgd0178f8">Complication: Line pragmas</h2>
+<section id="slide-org1ce0b0e">
+<h2 id="org1ce0b0e">Complication: Line pragmas</h2>
 <ul>
 <li>GHC Lexer.x already processes these natively</li>
 <li>Tooling Problem
@@ -397,8 +392,8 @@ The usage "normal" developers see
 </section>
 </section>
 <section>
-<section id="slide-org1063048">
-<h2 id="org1063048">Usage scenario 2 : Code modification</h2>
+<section id="slide-orgd5f0df0">
+<h2 id="orgd5f0df0">Usage scenario 2 : Code modification</h2>
 <ul>
 <li>skip/ignore unprocessed pragmas</li>
 <li>Turn line pragmas into comments
@@ -418,8 +413,8 @@ My primary motivation
 </section>
 </section>
 <section>
-<section id="slide-orgc3b7424">
-<h2 id="orgc3b7424">Experience report : hackage roundtrip</h2>
+<section id="slide-org9e4c917">
+<h2 id="org9e4c917">Experience report : hackage roundtrip</h2>
 <ul>
 <li>download all of hackage as at Mar 16</li>
 <li>cleanup whitespace, line endings</li>
@@ -434,7 +429,7 @@ My primary motivation
 <li>minor edits for language changes
 <ul>
 <li>" @ " -&gt; "@"</li>
-<li>"! @ -&gt; "!"</li>
+<li>"! " -&gt; "!"</li>
 
 </ul></li>
 
@@ -444,8 +439,8 @@ My primary motivation
 </section>
 </section>
 <section>
-<section id="slide-org0fc7c38">
-<h2 id="org0fc7c38">ghc-exactprint tweaks</h2>
+<section id="slide-orge51ba81">
+<h2 id="orge51ba81">ghc-exactprint tweaks</h2>
 <ul>
 <li>always allow <code class="src src-haskell"><span style="color: #228b22;">JavaScriptFFI</span></code></li>
 <li>hard-code usage of GHC_CPP</li>
@@ -455,18 +450,24 @@ My primary motivation
 </section>
 </section>
 <section>
-<section id="slide-org34ebadf">
-<h2 id="org34ebadf">Results of ghc-exactprint</h2>
+<section id="slide-org558a84f">
+<h2 id="org558a84f">Results of ghc-exactprint</h2>
 <ul>
 <li>204,566  files processed.</li>
 <li>508 could not be processed by GHC_CPP (0.25%)
- 32 used #include
-385 used #define
- 58 CPP-style comments
- 21 line concatenation
- 12 inadequate context emulation
-    MIN_VERSION_xxx
-    MIN_TOOL_VERSION_xx</li>
+<ul>
+<li><code class="src src-haskell"> 32  </code> used #include</li>
+<li><code class="src src-haskell">385  </code> used #define</li>
+<li><code class="src src-haskell"> 58  </code> CPP-style comments</li>
+<li><code class="src src-haskell"> 21  </code> line concatenation</li>
+<li><code class="src src-haskell"> 12  </code> inadequate context emulation
+<ul>
+<li><code class="src src-haskell"><span style="color: #228b22;">MIN_VERSION_xxx</span></code></li>
+<li><code class="src src-haskell"><span style="color: #228b22;">MIN_TOOL_VERSION_xxx</span></code></li>
+
+</ul></li>
+
+</ul></li>
 
 </ul>
 
@@ -480,8 +481,8 @@ My primary motivation
 </section>
 </section>
 <section>
-<section id="slide-org3e50d29">
-<h2 id="org3e50d29">caveats</h2>
+<section id="slide-orgcf4d376">
+<h2 id="orgcf4d376">caveats</h2>
 <ul>
 <li>This measures ability to correctly parse a file, and round trip it</li>
 <li>does not compare the resulting AST's from CPP and GHC_CPP
@@ -496,12 +497,17 @@ conditionals</li>
 </section>
 </section>
 <section>
-<section id="slide-org6bde550">
-<h2 id="org6bde550">End</h2>
+<section id="slide-org8747f7a">
+<h2 id="org8747f7a">End</h2>
 <p>
-This presentation: <a href="https://alanz.github.io/h1w2025/">https://alanz.github.io/h1w2025/</a>
-<img src="./images-work/hiw2025-url.png" alt="hiw2025-url.png" />
+This presentation: <a href="https://alanz.github.io/hiw2025/">https://alanz.github.io/hiw2025/</a>
 </p>
+
+
+<div id="orge11e12c" class="figure">
+<p><img src="./images-work/hiw2025-url.png" alt="hiw2025-url.png" />
+</p>
+</div>
 <ul>
 <li><a href="https://github.com/ghc-proposals/ghc-proposals/pull/616">GHC CPP proposal</a></li>
 <li>GHC feature branch: <a href="https://gitlab.haskell.org/ghc/ghc/-/tree/wip/az/ghc-cpp">https://gitlab.haskell.org/ghc/ghc/-/tree/wip/az/ghc-cpp</a></li>
@@ -513,167 +519,6 @@ This presentation: <a href="https://alanz.github.io/h1w2025/">https://alanz.gith
 
 <p>
 Questions?
-</p>
-</section>
-</section>
-<section>
-<section id="slide-orga221dc7">
-<h2 id="orga221dc7">Unused Stuff</h2>
-<div class="outline-text-2" id="text-orga221dc7">
-</div>
-</section>
-</section>
-<section>
-<section id="slide-org44a3a80">
-<h3 id="org44a3a80">CPP anti-features</h3>
-<ul>
-<li>#define</li>
-<li>include files</li>
-<li>Not aware of GHC comments</li>
-<li>Is aware of CPP-style comments</li>
-<li>continuation lines</li>
-
-</ul>
-
-<p>
-Maybe
-</p>
-<ul>
-<li>line pragmas</li>
-
-</ul>
-<p>
-But useful for generated code, a definite use-case
-HOWEVER, there is a haskell-specific syntax for that already
-</p>
-
-<aside class="notes">
-<p>
-#define that escapes the bounds of CPP directives, that is.
-</p>
-
-<p>
-These issues are more important from the perspective of tool writers
-#define: darcs has a file gadts.h defining stuff for use with and without them
-</p>
-
-</aside>
-</section>
-</section>
-<section>
-<section id="slide-orge835b86">
-<h3 id="orge835b86">Why</h3>
-<ul>
-<li>tooling</li>
-
-</ul>
-
-<aside class="notes">
-<p>
-I look after ghc-exactprint, a library to allow changes to the GHC
-parsed ast, and print it back to source.
-This is difficult or impossible with the current preprocessor
-implementation.
-</p>
-
-</aside>
-</section>
-<section id="slide-orgdabb276">
-<h4 id="orgdabb276">tooling</h4>
-<div class="outline-text-4" id="text-orgdabb276">
-</div>
-<ul class="org-ul">
-<li><a id="org25fce9b"></a>ghc-exactprint<br />
-<ul>
-<li>Difficult to manage the pieces, especially the anti-features</li>
-
-</ul>
-</li>
-<li><a id="orgced4088"></a>retrie<br />
-<p>
-Works with all expansions of CPP options for a file
-</p>
-</li>
-<li><a id="orgdcb693b"></a>ormolu<br />
-<p>
-Need to check what it does
-<a href="https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp">https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp</a>
-</p>
-
-<blockquote>
-<p>
-If CPP is replaced with some language extension or mechanism to do
-conditional compilation, all tools will benefit from it.
-</p>
-</blockquote>
-</li>
-</ul>
-</section>
-<section id="slide-org938cee4">
-<h4 id="org938cee4">tooling recap</h4>
-<p>
-Every tool is doing its own best to cope with it
-</p>
-</section>
-<section id="slide-org3847fbb">
-<h4 id="org3847fbb">simplification</h4>
-</section>
-</section>
-<section>
-<section id="slide-orgb48ca8c">
-<h3 id="orgb48ca8c">Notes</h3>
-<ul>
-<li>note: two phases: get pragmas, and do parse</li>
-<li>preset macros
-<ul>
-<li>Based on existing CPP pipeline in GHC, but not written to a file
-<ul>
-<li>GHC version etc</li>
-<li>Also based on Unit Env</li>
-
-</ul></li>
-
-</ul></li>
-<li>possible optimisation, as used in ghc-exactprint
-load pre-processed macros for a project</li>
-
-</ul>
-</section>
-</section>
-<section>
-<section id="slide-orgb023a53">
-<h3 id="orgb023a53">Dealing with "off" sections</h3>
-<ul>
-<li>considered emitting tokens</li>
-<li>switched to making it a comment
-<ul>
-<li>whitespace ALR rule complexity</li>
-<li>By definition "off" stuff can be anything
-e.g. #if 0, some random chunk of text</li>
-
-</ul></li>
-
-</ul>
-</section>
-</section>
-<section>
-<section id="slide-org8555be1">
-<h3 id="org8555be1">CPP-style comments</h3>
-<ul>
-<li>can possibly enable them when starting against the left margin, only
-<ul>
-<li>but prefer to ban them, we have comment syntax</li>
-
-</ul></li>
-
-</ul>
-</section>
-</section>
-<section>
-<section id="slide-orge71bbb5">
-<h3 id="orge71bbb5">Subset</h3>
-<p>
-Barest subset of evaluation
 </p>
 </section>
 </section>
@@ -699,7 +544,7 @@ mouseWheel: false,
 fragmentInURL: false,
 hashOneBasedIndex: false,
 pdfSeparateFragments: true,
-totalTime: 1200,
+totalTime: 1000,
 overview: true,
 
 transition: 'linear',

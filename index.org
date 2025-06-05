@@ -13,7 +13,9 @@
 #+OPTIONS: toc:0
 
 # 20 mins x 60 secs is 1200
-#+OPTIONS: reveal_totaltime:1200
+# Allow questions
+# 17 mins x 60 secs is 1020
+#+OPTIONS: reveal_totaltime:1000
 
 #+OPTIONS: reveal_center:nil
 # #+REVEAL_THEME: simple
@@ -72,10 +74,7 @@ started working on Haskell refactoring tools over ten years ago.
 - Is outside the language of Haskell
 
 #+begin_notes
-The C preprocessor. Or C++ preprocessor.
-
 My 5 min research shows it was in GHC 2 already, from 1997.
-https://downloads.haskell.org/~ghc/old_docs/2.10/users_guide/user_33.html#IDX109
 The docs are for 2.10, but the changelog back to 2.0 does not mention it being added.
 
 Because it is outside the language, it can manage changes between
@@ -114,8 +113,8 @@ It does or can do too much.
 - conditionally enable/disable blocks of code
 - but also
   - combine lines using trailing backslash
-  - process include files
   - arbitrary replacement of text using #define
+  - process include files
 - Breaks layering, making code hard(er) to understand
 
 - The last items are just an annoyance when trying to understand code,
@@ -146,7 +145,6 @@ It does or can do too much.
 - tooling friendly
 
 #+begin_notes
-- Idea
 - Only active in lines introduced with a `#` and preprocessor
   keyword.
 - Tooling friendly, in that parts of the code disabled by the
@@ -204,8 +202,9 @@ conflict with overloaded record labels
 #+end_notes
 
 * Basis : CPP Spec
-I worked from an [[https://timsong-cpp.github.io/cppwp/n4140][online version]] at
+I worked from an online version at
 https://timsong-cpp.github.io/cppwp/n4140/
+[[./images-work/cpp-spec-toc.png]]
 
 #+begin_notes
 Processing pipeline for directives only includes
@@ -274,7 +273,7 @@ My primary motivation
     - for changes in GHC, e.g. src_haskell{NonDecreasingIndent}
   - minor edits for language changes
     - " @ " -> "@"
-    - "! @ -> "!"
+    - "! " -> "!"
 * ghc-exactprint tweaks
 - always allow src_haskell{JavaScriptFFI}
 - hard-code usage of GHC_CPP
@@ -283,13 +282,13 @@ My primary motivation
 * Results of ghc-exactprint
 - 204,566  files processed.
 - 508 could not be processed by GHC_CPP (0.25%)
-   32 used #include
-  385 used #define
-   58 CPP-style comments
-   21 line concatenation
-   12 inadequate context emulation
-      MIN_VERSION_xxx
-      MIN_TOOL_VERSION_xx
+  - src_haskell{ 32  } used #include
+  - src_haskell{385  } used #define
+  - src_haskell{ 58  } CPP-style comments
+  - src_haskell{ 21  } line concatenation
+  - src_haskell{ 12  } inadequate context emulation
+     - src_haskell{MIN_VERSION_xxx}
+     - src_haskell{MIN_TOOL_VERSION_xxx}
 
 #+begin_notes
 - Total hackage download is 235k files, did not have time to scrub the last ones
@@ -304,7 +303,8 @@ My primary motivation
 
 * End
 
-This presentation: https://alanz.github.io/h1w2025/
+This presentation: https://alanz.github.io/hiw2025/
+
 [[./images-work/hiw2025-url.png]]
 - [[https://github.com/ghc-proposals/ghc-proposals/pull/616][GHC CPP proposal]]
 - GHC feature branch: https://gitlab.haskell.org/ghc/ghc/-/tree/wip/az/ghc-cpp
@@ -313,69 +313,3 @@ This presentation: https://alanz.github.io/h1w2025/
 - Slides written in emacs [[https://orgmode.org/][org-mode]] using [[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] for [[https://revealjs.com/][reveal.js]] 
 
 Questions?
-* Unused Stuff
-** CPP anti-features
-- #define
-- include files
-- Not aware of GHC comments
-- Is aware of CPP-style comments
-- continuation lines
-
-Maybe
-- line pragmas
-But useful for generated code, a definite use-case
-HOWEVER, there is a haskell-specific syntax for that already
-
-#+begin_notes
-#define that escapes the bounds of CPP directives, that is.
-
-These issues are more important from the perspective of tool writers
-#define: darcs has a file gadts.h defining stuff for use with and without them
-#+end_notes
-
-** Why
-- tooling
-
-#+begin_notes
-I look after ghc-exactprint, a library to allow changes to the GHC
-parsed ast, and print it back to source.
-This is difficult or impossible with the current preprocessor
-implementation.
-#+end_notes
-
-*** tooling
-**** ghc-exactprint
-- Difficult to manage the pieces, especially the anti-features
-**** retrie
-Works with all expansions of CPP options for a file
-**** ormolu
-Need to check what it does
-https://github.com/tweag/ormolu/blob/master/DESIGN.md#cpp
-
-#+begin_quote
-If CPP is replaced with some language extension or mechanism to do
-conditional compilation, all tools will benefit from it.
-#+end_quote
-*** tooling recap
-Every tool is doing its own best to cope with it
-*** simplification
-
-** Notes
-- note: two phases: get pragmas, and do parse
-- preset macros
-  - Based on existing CPP pipeline in GHC, but not written to a file
-    - GHC version etc
-    - Also based on Unit Env
-- possible optimisation, as used in ghc-exactprint
-  load pre-processed macros for a project
-** Dealing with "off" sections
-- considered emitting tokens
-- switched to making it a comment
-  - whitespace ALR rule complexity
-  - By definition "off" stuff can be anything
-    e.g. #if 0, some random chunk of text
-** CPP-style comments
-  - can possibly enable them when starting against the left margin, only
-    - but prefer to ban them, we have comment syntax
-** Subset
-Barest subset of evaluation
